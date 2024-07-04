@@ -130,9 +130,8 @@ namespace CSharpRootkit
                         ProcessMemoryFileUpdates();
                     }
                 }
-                catch (Exception e)
+                catch
                 {
-                    var f = e;
                     errorCount++;
                     if (errorCount >= MaxErrorCount) 
                     {
