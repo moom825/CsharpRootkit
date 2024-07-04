@@ -129,7 +129,11 @@ namespace CSharpRootkit
         {
             if (signalRootKitStop) 
             {
-                SignalRootKitStop();
+                try
+                {
+                    SignalRootKitStop();
+                }
+                catch { }
             }
             
             HidePids.Clear();
@@ -138,7 +142,7 @@ namespace CSharpRootkit
             HideFileNames.Clear();
             MemoryFileModifier?.Dispose();
             MemoryFile?.Dispose();
-            NeedsUpdate = true;
+            //NeedsUpdate = true;
             started = false;
         }
 

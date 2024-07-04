@@ -274,6 +274,11 @@ namespace CSharpRootkit
 
         public void RemoveHook()
         {
+            if (RestoreBytes == null) 
+            {
+                throw new Exception("RestoreBytes is null, did you install the hook?");
+            }
+
             bool Worked = NativeMethods.VirtualProtect(TargetFunction, (UIntPtr)RestoreBytes.Length, PAGE_EXECUTE_READWRITE, out uint oldProtect);
 
             if (!Worked)
@@ -294,6 +299,7 @@ namespace CSharpRootkit
                 Marshal.FreeHGlobal(Trampoline);
             }
             Trampoline = IntPtr.Zero;
+            RestoreBytes = null;
         }
 
         private byte[] CreateAbsoluteJumpx64New(IntPtr target)

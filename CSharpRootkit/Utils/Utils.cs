@@ -113,25 +113,25 @@ namespace CSharpRootkit
             {
                 uint result = NativeMethods.NtGetNextThread(NativeMethods.GetCurrentProcess(), hThread, THREAD_SUSPEND_RESUME | THREAD_QUERY_INFORMATION, 0, 0, out IntPtr hThreadNext);
 
-                if (result == 0)
+                if (result == 0 && hThread != IntPtr.Zero)
                 {
-                    if (hThread != IntPtr.Zero)
+                    uint newThreadId = NativeMethods.GetThreadId(hThread);
+
+                    if (newThreadId != CurrentThreadId)
                     {
                         threadHandles.Add(hThread);
+                        NativeMethods.SuspendThread(hThread);//this can pause the debugger thread causing the program to freeze up
                     }
-                    hThread = hThreadNext;
+                    else 
+                    {
+                        NativeMethods.CloseHandle(hThread);
+                    }
                 }
                 else if (result == STATUS_NO_MORE_ENTRIES)
                 {
                     break;
                 }
-
-                uint newThreadId = NativeMethods.GetThreadId(hThread);
-
-                if (newThreadId != CurrentThreadId)
-                {
-                    NativeMethods.SuspendThread(hThread);//this can pause the debugger thread causing the program to freeze up
-                }
+                hThread = hThreadNext;
             }
             return threadHandles.ToArray();
         }

@@ -47,6 +47,7 @@ namespace CSharpRootkit
                 }
                 else if (commmand == "stop")
                 {
+                    //RootKitInterface.SignalRootKitStop();
                     break;
                 }
                 else 
