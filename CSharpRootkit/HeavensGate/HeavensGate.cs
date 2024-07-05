@@ -424,7 +424,7 @@ namespace CSharpRootkit
             return Utils64.GetRemoteModuleHandle64Bit(CurrentProcessDuplicateHandle, ModuleName);
         }
 
-        public static ulong LoadLibrary64(string LibraryName, ulong flags = 0)
+        public static ulong LoadLibrary64(string LibraryName)
         {
             if (!operational)
             {
@@ -442,7 +442,7 @@ namespace CSharpRootkit
 
             IntPtr modulePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(InternalStructs.ULONGRESULT)));
 
-            ulong result = Execute64(LdrLoadDll, 0, flags, (ulong)uniStr64Ptr, (ulong)modulePtr);
+            ulong result = Execute64(LdrLoadDll, 0, 0, (ulong)uniStr64Ptr, (ulong)modulePtr);
 
             ulong ModuleHandle = Marshal.PtrToStructure<InternalStructs.ULONGRESULT>(modulePtr).Value;
 
