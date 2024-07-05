@@ -54,7 +54,7 @@ namespace CSharpRootkit
         {
             uint SPECIAL_STATUS_ACCESS_DENIED = 0xd0000022;
             Guid DebugClientIID = new Guid("27fe5639-8407-4f47-8364-ee118fb08ac8");
-            if (SpecialNativeMethods.DebugCreate(ref DebugClientIID, out DebugClient) != 0)
+            if (DbgInterface.DebugCreate(ref DebugClientIID, out DebugClient) != 0)
             {
                 CanGetInstructionSize = false;
                 return;

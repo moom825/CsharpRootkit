@@ -36,9 +36,6 @@ namespace CSharpRootkit
             ulong BufferSize,
             ref ulong NumberOfBytesWritten);
 
-        [DllImport("dbgeng.dll", SetLastError = true)]
-        public static extern int DebugCreate(ref Guid refId, out DbgInterface.IDebugClient ptr);
-
 
     }
 }
