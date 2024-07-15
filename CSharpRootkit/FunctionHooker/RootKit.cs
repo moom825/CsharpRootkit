@@ -14,7 +14,6 @@ using System.Windows.Forms;
 
 namespace CSharpRootkit
 {
-
     public static class RootKit
     {
         [UnmanagedFunctionPointer(CallingConvention.Winapi)]

