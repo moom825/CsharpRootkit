@@ -518,7 +518,7 @@ namespace CSharpRootkit
                 return false;
             }
 
-            if (processHasInjectionFlag(ProcessHandle, out bool isInjected) && isInjected)
+            if (!processHasInjectionFlag(ProcessHandle, out bool isInjected) || isInjected)
             {
                 return false;
             }
