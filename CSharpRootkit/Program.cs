@@ -69,6 +69,7 @@ namespace CSharpRootkit
             //the problem is it takes upward of 5 seconds to start up when injecting from admin -> user, which makes no sense to me. I'm guessing starting the thread is inheriting some admin properties which messes stuff up internally for the IDebugControl.
             //my solution it to start a new thread and let the old one die, this appears to fix it, im guessing because it starts it with the proper thread attributes for the given process.
             //if anyone knows a real reason why and a solution, hit me up.
+            //Thread.Sleep(20000);
             new Thread(InjectionStartingPoint).Start();
         }
 

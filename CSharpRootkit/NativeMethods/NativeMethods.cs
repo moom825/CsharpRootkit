@@ -20,7 +20,7 @@ namespace CSharpRootkit
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool CloseHandle(IntPtr hProcess);
 
-        [DllImport("Kernel32.dll")]
+        [DllImport("kernel32.dll")]
         public static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -64,7 +64,11 @@ namespace CSharpRootkit
         [DllImport("ntdll.dll", SetLastError = true)]
         public static extern uint NtGetNextThread(IntPtr ProcessHandle, IntPtr ThreadHandle, uint DesiredAccess, uint HandleAttributes, uint Flags, out IntPtr NewThreadHandle);
 
-        
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern uint NtWaitForSingleObject(IntPtr Handle, bool Alertable, IntPtr TimeOut);
+
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern uint NtQueryInformationThread(IntPtr threadHandle, THREADINFOCLASS threadInformationClass, IntPtr threadInformation, uint threadInformationLength, out uint returnLength);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern void SetLastError(uint dwErrCode);
@@ -109,22 +113,6 @@ namespace CSharpRootkit
 
         [DllImport("advapi32.dll", SetLastError = true)]
         public static extern IntPtr GetSidSubAuthorityCount(IntPtr pSid);
-
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr CreateRemoteThread(
-            IntPtr hProcess,
-            IntPtr lpThreadAttributes,
-            uint dwStackSize,
-            IntPtr lpStartAddress,
-            IntPtr lpParameter,
-            uint dwCreationFlags,
-            out IntPtr lpThreadId);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool GetExitCodeThread(IntPtr hThread, out uint lpExitCode);
         
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         public static extern IntPtr VirtualAlloc(IntPtr lpAddress, UIntPtr dwSize, uint flAllocationType, uint flProtect);
@@ -149,9 +137,6 @@ namespace CSharpRootkit
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr LoadLibraryW(string LibraryName);
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
-        public static extern IntPtr LoadLibraryA(string LibraryName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr GetProcAddress(IntPtr hmodule, string procName);

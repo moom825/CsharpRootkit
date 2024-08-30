@@ -10,7 +10,7 @@ namespace CSharpRootkit
 {
     public class InternalStructs
     {
-        public enum PROCESSINFOCLASS
+        public enum PROCESSINFOCLASS : uint
         {
             ProcessBasicInformation, // q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
             ProcessQuotaLimits, // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
@@ -113,7 +113,33 @@ namespace CSharpRootkit
             ProcessFiberShadowStackAllocation, // PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
             ProcessFreeFiberShadowStackAllocation, // PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
             MaxProcessInfoClass
-        };
+        }
+
+        public enum THREADINFOCLASS : uint
+        {
+            ThreadBasicInformation,
+            ThreadTimes,
+            ThreadPriority,
+            ThreadBasePriority,
+            ThreadAffinityMask,
+            ThreadImpersonationToken,
+            ThreadDescriptorTableEntry,
+            ThreadEnableAlignmentFaultFixup,
+            ThreadEventPair_Reusable,
+            ThreadQuerySetWin32StartAddress,
+            ThreadZeroTlsCell,
+            ThreadPerformanceCount,
+            ThreadAmILastThread,
+            ThreadIdealProcessor,
+            ThreadPriorityBoost,
+            ThreadSetTlsArrayAddress,
+            ThreadIsIoPending,
+            ThreadHideFromDebugger,
+            ThreadBreakOnTermination,
+            MaxThreadInfoClass,
+        }
+
+
         public struct UINTRESULT
         {
             public uint Value;
@@ -268,6 +294,24 @@ namespace CSharpRootkit
             System = 0x4000,
             ProtectedProcess = 0x5000,
         };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CLIENT_ID
+        {
+            public IntPtr UniqueProcess;
+            public IntPtr UniqueThread;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class THREAD_BASIC_INFORMATION
+        {
+            public uint ExitStatus;
+            public IntPtr TebBaseAddress;
+            public CLIENT_ID ClientId;
+            public UIntPtr AffinityMask;
+            public int Priority;
+            public int BasePriority;
+        }
 
     }
 }

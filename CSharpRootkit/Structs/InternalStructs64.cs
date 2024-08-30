@@ -181,6 +181,24 @@ namespace CSharpRootkit
             public uint DefaultThreadpoolThreadMaximum;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CLIENT_ID64
+        {
+            public ulong UniqueProcess;
+            public ulong UniqueThread;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class THREAD_BASIC_INFORMATION64
+        {
+            public uint ExitStatus;
+            public ulong TebBaseAddress;
+            public CLIENT_ID64 ClientId;
+            public ulong AffinityMask;
+            public int Priority;
+            public int BasePriority;
+        }
+
 
         public static ulong GetLdr64(ulong addr)
         {
